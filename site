@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Library and Store</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            padding: 20px;
+        }
+        .game-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .game-list li {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .game-info {
+            display: flex;
+            align-items: center;
+        }
+        .game-info img {
+            width: 100px;
+            height: auto;
+            margin-right: 20px;
+        }
+        .game-name {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .game-price {
+            font-size: 16px;
+            color: #666;
+        }
+        .button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            font-size: 16px;
+            color: #666;
+        }
+        .user-info img {
+            width: 30px;
+            height: auto;
+            margin-right: 10px;
+        }
+        .login-form {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .login-form input {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .login-form button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .login-form button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div id="login-panel" class="login-form">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="login()">Login</button>
+        <p id="login-error" style="color: red; display: none;">Credenciais inválidas. Tente novamente.</p>
+    </div>
+
+    <div id="content" style="display:none;">
+        <div class="container">
+            <div class="user-info">
+                <img src="https://pbs.twimg.com/profile_images/1385822026175291393/Ky6dWra4_400x400.jpg" alt="User Image">
+                <span id="user-info"></span>
+                <span id="balance-info" style="margin-left: 10px;"></span>
+            </div>
+        </div>
+
+        <button class="button" onclick="showLibrary()">Biblioteca</button>
+        <button class="button" onclick="showStore()">Loja</button>
+
+        <div id="library" class="container" style="display:none;">
+            <h2>Biblioteca de Jogos</h2>
+            <ul class="game-list" id="library-list">
+                <!-- Lista de jogos comprados será preenchida dinamicamente -->
+            </ul>
+        </div>
+
+        <div id="store" class="container" style="display:none;">
+            <h2>Loja de Jogos</h2>
+            <ul class="game-list">
+                <li class="game-item">
+                    <div class="game-info">
+                        <img src="https://scrapmechanic.com/media/1008/logo.png" alt="Scrap Mechanic Image">
+                        <div>
+                            <div class="game-name">Scrap-Mechanic</div>
+                            <div class="game-price">$19.99</div>
+                            <div><button class="button" onclick="buyGame('Scrap-Mechanic', 19.99)">Comprar</button></div>
+                        </div>
+                    </div>
+                </li>
+                <li class="game-item">
+                    <div class="game-info">
+                        <img src="https://cdn.akamai.steamstatic.com/steam/apps/648800/header.jpg?t=1693638925" alt="Raft Image">
+                        <div>
+                            <div class="game-name">Raft</div>
+                            <div class="game-price">$24.99</div>
+                            <div><button class="button" onclick="buyGame('Raft', 24.99)">Comprar</button></div>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        var purchasedGames = [];
+        var currentUser = null;
+        var userBalance = getCookie("balance") ? parseFloat(getCookie("balance")) : 100;
+
+        function downloadGame(url) {
+            window.open(url, '_blank');
+        }
+
+        function buyGame(gameName, price) {
+            if (userBalance >= price) {
+                userBalance -= price;
+                purchasedGames.push(gameName);
+                setCookie("balance", userBalance, 30); // Salvar o saldo em um cookie com validade de 30 dias
+                setCookie("purchasedGames", JSON.stringify(purchasedGames), 30); // Salvar os jogos comprados em um cookie
+                alert("Você comprou o jogo " + gameName + "!");
+                updateLibrary();
+                updateBalance();
+            } else {
+                alert("Saldo insuficiente para comprar o jogo.");
+            }
+        }
+
+        function removeFromLibrary(gameName) {
+            var index = purchasedGames.indexOf(gameName);
+            if (index !== -1) {
+                purchasedGames.splice(index, 1);
+                setCookie("purchasedGames", JSON.stringify(purchasedGames), 30); // Atualizar os jogos comprados no cookie
+                updateLibrary();
+            }
+        }
+
+        function updateLibrary() {
+            var libraryList = document.getElementById("library-list");
+            libraryList.innerHTML = "";
+            purchasedGames.forEach(function(game) {
+                var listItem = document.createElement("li");
+                listItem.classList.add("game-item");
+                listItem.innerHTML = '<div class="game-info"><img src="https://cdn.akamai.steamstatic.com/steam/apps/648800/header.jpg?t=1693638925" alt="' + game + ' Image"><div><div class="game-name">' + game + '</div><div><button class="button" onclick="downloadGame(\'https://download2361.mediafire.com/wwli4wfv1twg166-W9X8Y2iFwA6YTSixOrJHcaYAYvKcEAy6C1T_r4m863OSPC0e3aK3VqLBmQWr23OvLE2wW5oFrq6wxPdUxP3u29rLW0Tx50TqcMxqtxVY0zVAVlm4SfP-6nIafH88BLkMrIUKtCblsGmG5nF5WMol36JH0wY/cme71ozlgpbwl4o/Raft+22.12.22.zip\')">Baixar</button> <button class="button" onclick="removeFromLibrary(\'' + game + '\')">Remover</button></div></div></div>';
+                libraryList.appendChild(listItem);
+            });
+        }
+
+        function updateBalance() {
+            document.getElementById("balance-info").textContent = "Saldo: $" + userBalance.toFixed(2);
+        }
+
+        function showLibrary() {
+            document.getElementById("library").style.display = "block";
+            document.getElementById("store").style.display = "none";
+            updateLibrary(); // Atualiza a biblioteca sempre que for exibida
+        }
+
+        function showStore() {
+            document.getElementById("library").style.display = "none";
+            document.getElementById("store").style.display = "block";
+        }
+
+        function login() {
+            var username = document.getElementById("username").value;
+            var password = document.getElementById("password").value;
+            if ((username === "tomas" && password === "tomas2023") || (username === "rike" && password === "@Rike112009")) {
+                currentUser = username;
+                document.getElementById("login-panel").style.display = "none";
+                document.getElementById("content").style.display = "block";
+                document.getElementById("user-info").textContent = "Usuário: " + currentUser;
+                document.getElementById("balance-info").textContent = "Saldo: $" + userBalance.toFixed(2);
+                showLibrary(); // Exibe a biblioteca após o login bem-sucedido
+            } else {
+                document.getElementById("login-error").style.display = "block";
+            }
+        }
+
+        // Função para definir um cookie
+        function setCookie(name, value, days) {
+            var expires = "";
+            if (days) {
+                var date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            document.cookie = name + "=" + (value || "") + expires + "; path=/";
+        }
+
+        // Função para obter um cookie pelo nome
+        function getCookie(name) {
+            var nameEQ = name + "=";
+            var ca = document.cookie.split(';');
+            for (var i = 0; i < ca.length; i++) {
+                var c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+
+        // Função para apagar um cookie pelo nome
+        function eraseCookie(name) {
+            document.cookie = name + '=; Max-Age=-99999999;';
+        }
+
+        // Carregar dados do usuário salvos nos cookies, se existirem
+        window.onload = function() {
+            currentUser = getCookie("username");
+            userBalance = getCookie("balance") ? parseFloat(getCookie("balance")) : 100;
+            purchasedGames = getCookie("purchasedGames") ? JSON.parse(getCookie("purchasedGames")) : [];
+            if (currentUser) {
+                document.getElementById("login-panel").style.display = "none";
+                document.getElementById("content").style.display = "block";
+                document.getElementById("user-info").textContent = "Usuário: " + currentUser;
+                document.getElementById("balance-info").textContent = "Saldo: $" + userBalance.toFixed(2);
+                updateLibrary();
+            }
+        };
+    </script>
+</body>
+</html>
